@@ -1,0 +1,10 @@
+.ai/
+*.log
+*.tmp
+
+# Go
+*.exe
+*.out
+*.test
+/bin/
+/dist/
