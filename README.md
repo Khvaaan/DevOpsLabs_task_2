@@ -51,7 +51,8 @@ curl -X DELETE http://127.0.0.1:8080/tasks \
   -H "Content-Type: application/json" \
   -d '{"id":10}'
 
-Проверка, что все пакеты собираются:
+## Проверка, что все пакеты собираются:
+
 go test ./...
 
-Файл schema.sql содержит схему таблицы tasks (на будущее для PostgreSQL).
+## Файл schema.sql содержит схему таблицы tasks (на будущее для PostgreSQL).
