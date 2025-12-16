@@ -1,10 +1,12 @@
-.ai/
-*.log
-*.tmp
+# Secrets
+deploy/**/secrets/*
 
-# Go
-*.exe
-*.out
-*.test
-/bin/
-/dist/
+# GitLab runtime data
+deploy/gitlab/data/
+deploy/gitlab/config/
+deploy/gitlab/logs/
+
+# Docker / temp
+*.log
+.env
+

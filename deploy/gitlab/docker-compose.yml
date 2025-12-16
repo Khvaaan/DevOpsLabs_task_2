@@ -1,0 +1,61 @@
+version: "3.9"
+
+services:
+  # Основной сервис GitLab
+  gitlab:
+    # Официальный образ GitLab CE
+    image: gitlab/gitlab-ce:latest
+
+    # Фиксированное имя контейнера (удобно для диагностики)
+    container_name: gitlab
+
+    # Автоперезапуск при падении / после перезагрузки хоста
+    restart: always
+
+    # Внутреннее hostname контейнера (должно совпадать с external_url)
+    hostname: gitlab.local
+
+    # Публикуем HTTPS на хосте
+    ports:
+      - "443:443"
+
+    # Omnibus-конфигурация GitLab через переменную окружения
+    environment:
+      GITLAB_OMNIBUS_CONFIG: |
+        external_url "https://gitlab.local"
+        nginx['redirect_http_to_https'] = true
+        nginx['ssl_certificate'] = "/run/secrets/tls.crt"
+        nginx['ssl_certificate_key'] = "/run/secrets/tls.key"
+        gitlab_rails['initial_root_password'] = File.read('/run/secrets/root_password.txt').strip
+
+    # Подключаем секреты в контейнер (будут доступны в /run/secrets/)
+    secrets:
+      - tls.crt
+      - tls.key
+      - root_password.txt
+
+    # Персистентные тома для конфигов/данных/логов GitLab
+    volumes:
+      - ./config:/etc/gitlab
+      - ./data:/var/opt/gitlab
+      - ./logs:/var/log/gitlab
+
+    # Shared memory, чтобы GitLab работал стабильнее
+    shm_size: "256m"
+
+secrets:
+  # Secret сертификата TLS
+  tls.crt:
+    # Берём из файла в ./secrets
+    file: ./secrets/tls.crt
+
+  # Secret приватного ключа TLS
+  tls.key:
+    # Берём из файла в ./secrets
+    file: ./secrets/tls.key
+
+  # Secret root-пароля GitLab
+  root_password.txt:
+    # Берём из файла в ./secrets
+    file: ./secrets/root_password.txt
+

@@ -1,0 +1,93 @@
+version: "3.9"
+
+services:
+  # Сервис базы данных PostgreSQL
+  postgres:
+    # Официальный образ PostgreSQL
+    image: postgres:16
+
+    # Автоперезапуск контейнера
+    restart: always
+
+    # Переменные окружения для инициализации БД
+    environment:
+      POSTGRES_DB: news
+      POSTGRES_USER: newsuser
+      POSTGRES_PASSWORD_FILE: /run/secrets/pg_password
+
+    # Секрет с паролем БД
+    secrets:
+      - pg_password
+
+    # Персистентный том для хранения данных PostgreSQL
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+  # Go-приложение (REST API)
+  app:
+    # Собранный Docker-образ приложения
+    image: newsapp:lab3
+
+    # Автоперезапуск контейнера
+    restart: always
+
+    # Ожидаем готовности PostgreSQL
+    depends_on:
+      - postgres
+
+    # Entrypoint-скрипт для ожидания БД
+    entrypoint: ["/entrypoint.sh"]
+
+    # Выбор используемого хранилища
+    environment:
+      STORAGE: postgres
+
+    # Секрет с паролем БД
+    secrets:
+      - pg_password
+
+    # Подключение entrypoint-скрипта
+    volumes:
+      - ./entrypoint.sh:/entrypoint.sh:ro
+
+  # Nginx reverse proxy
+  nginx:
+    # Официальный образ Nginx
+    image: nginx:1.27
+
+    # Автоперезапуск контейнера
+    restart: always
+
+    # Зависимость от приложения
+    depends_on:
+      - app
+
+    # Публикация HTTPS-порта на хосте
+    ports:
+      - "443:443"
+
+    # Конфигурация Nginx
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+
+    # TLS-секреты
+    secrets:
+      - tls.crt
+      - tls.key
+
+secrets:
+  # Пароль PostgreSQL
+  pg_password:
+    file: ./secrets/pg_password.txt
+
+  # TLS-сертификат
+  tls.crt:
+    file: ./secrets/tls.crt
+
+  # TLS-приватный ключ
+  tls.key:
+    file: ./secrets/tls.key
+
+volumes:
+  # Том для данных PostgreSQL
+  pgdata:

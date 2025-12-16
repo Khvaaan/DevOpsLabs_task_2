@@ -1,58 +1,119 @@
-# DevOpsLabs — Lab 2: Task CRUD (Go)
+# DevOps Labs — News App
 
-REST API сервис с 4 методами (GET/POST/PUT/DELETE) и 3 реализациями хранилища:
-- **memdb** (fake/in-memory) — используется для проверки
-- **postgres** — реализация интерфейса на будущее
-- **mongo** — реализация интерфейса на будущее
+Репозиторий содержит лабораторные работы по курсу DevOps / Docker / Security.
 
-## Requirements
-- Go **1.18+**
+Проект включает:
+- настройку и базовое укрепление Linux-хоста (Lab 1),
+- разработку REST API приложения на Go (Lab 2),
+- контейнеризацию приложения, настройку HTTPS и развёртывание GitLab (Lab 3).
 
-## Run (Fake DB)
-Из корня проекта:
+---
+
+## Общая информация
+
+- ОС: Ubuntu 22.04 LTS  
+- Архитектура: amd64  
+- Язык приложения: Go  
+- Контейнеризация: Docker, Docker Compose  
+- HTTPS: self-signed сертификаты  
+- Работа с секретами: Docker secrets (file-based)
+
+---
+
+## Структура репозитория
 ```
-go mod tidy
-go run ./cmd/server
+deploy/
+├── app/
+│ ├── docker-compose.yml
+│ ├── entrypoint.sh
+│ ├── nginx/
+│ │ └── nginx.conf
+│ └── secrets/
+│ ├── pg_password.txt
+│ ├── tls.crt
+│ └── tls.key
+└── gitlab/
+├── docker-compose.yml
+├── config/
+├── data/
+├── logs/
+└── secrets/
+├── root_password.txt
+├── tls.crt
+└── tls.key
 ```
 
-Сервис стартует на:
 
-http://127.0.0.1:8080
+Каталоги `secrets` содержат чувствительные данные и не должны добавляться в git.
 
-## API
+---
 
-Endpoints:
+## Lab 1 — Host Linux / Security
 
-GET /tasks — получить список задач
+Выполнено:
+- обновление системы;
+- настройка SSH (нестандартный порт);
+- включение и настройка UFW;
+- ограничение прав доступа к системным файлам;
+- настройка лимитов пользователей;
+- настройка HTTPS с self-signed сертификатом и проверка через `curl`.
 
-POST /tasks — создать задачу
+---
 
-PUT /tasks — обновить задачу
+## Lab 2 — REST API (Go)
 
-DELETE /tasks — удалить задачу
+Реализовано REST API с CRUD-операциями.
 
-## Examples (curl)
+Поддерживаемые хранилища:
+- in-memory (memdb);
+- PostgreSQL;
+- MongoDB.
 
-Get:
-curl http://127.0.0.1:8080/tasks
-
-Create:
-curl -X POST http://127.0.0.1:8080/tasks \
-  -H "Content-Type: application/json" \
-  -d '{"id":10,"title":"t","done":false,"created_at":0}'
-
-Update:
-curl -X PUT http://127.0.0.1:8080/tasks \
-  -H "Content-Type: application/json" \
-  -d '{"id":10,"title":"t2","done":true,"created_at":0}'
-
-Delete:
-curl -X DELETE http://127.0.0.1:8080/tasks \
-  -H "Content-Type: application/json" \
-  -d '{"id":10}'
-
-## Проверка, что все пакеты собираются:
-
+Проверка локального запуска:
+```bash
 go test ./...
+go run ./cmd/
+```
 
-## Файл schema.sql содержит схему таблицы tasks (на будущее для PostgreSQL).
+## Lab 3 — Docker / HTTPS / GitLab
+### Приложение (nginx + app + PostgreSQL)
+
+Запуск стека приложения:
+```
+cd deploy/app
+docker compose up -d
+```
+
+Проверка записи в БД по HTTPS:
+```
+curl -k -X POST https://localhost/tasks \
+  -H "Content-Type: application/json" \
+  -d '{"title":"TEST","done":false}'
+```
+Результат: HTTP 200 и появление записи в PostgreSQL.
+
+## GitLab под HTTPS
+GitLab разворачивается отдельным docker-compose
+Запуск:
+```
+cd deploy/gitlab
+docker compose up -d
+```
+
+Проверка доступности:
+```
+curl -k -I https://localhost
+```
+GitLab возвращает HTTP 302 с редиректом на "/users/sign_in", что является корректным поведением для неаутентифицированного пользователя и подтверждает работоспособность HTTPS.
+```
+curl -k -I https://localhost/users/sign_in
+```
+При обращении к "https://localhost/users/sign_in" отдаёт 200
+
+### Работа с секретами
+
+Пароли БД и TLS-ключи не хранятся в открытом виде в compose-файлах.
+
+Все секреты подключаются через docker secrets.
+
+Каталоги deploy/*/secrets исключены из git.
