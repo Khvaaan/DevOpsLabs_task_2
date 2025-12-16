@@ -20,8 +20,11 @@ services:
       - pg_password
 
     # Персистентный том для хранения данных PostgreSQL
+
     volumes:
       - pgdata:/var/lib/postgresql/data
+      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql:ro
+
 
   # Go-приложение (REST API)
   app:

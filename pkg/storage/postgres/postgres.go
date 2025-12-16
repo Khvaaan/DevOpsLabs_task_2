@@ -42,11 +42,12 @@ func (p *DB) Tasks() ([]storage.Task, error) {
 }
 
 func (p *DB) AddTask(t storage.Task) error {
-  _, err := p.db.Exec(
-    `INSERT INTO tasks (id, title, done, created_at) VALUES ($1,$2,$3,$4)`,
-    t.ID, t.Title, t.Done, t.CreatedAt,
-  )
-  return err
+	_, err := p.db.Exec(
+		`INSERT INTO tasks (title, done, created_at)
+		 VALUES ($1,$2,$3)`,
+		t.Title, t.Done, t.CreatedAt,
+	)
+	return err
 }
 
 func (p *DB) UpdateTask(t storage.Task) error {
